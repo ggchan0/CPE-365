@@ -1,0 +1,2 @@
+-- ggchan
+DROP TABLE marathon;

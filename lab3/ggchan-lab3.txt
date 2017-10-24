@@ -1,0 +1,5 @@
+From the CARS dataset: which carmaker is the most popular for cars under 150 horsepower?
+From the CARS dataset: which carmaker typically has the highest average horsepower?
+From the INN dataset: which month had the most reservations for rooms with queen beds?
+From the AIRLINES dataset: which airline had the most international flights?
+From the CSU dataset: which years saw the highest tuition increases and decreases?

@@ -1,0 +1,2 @@
+1. Compile SchoolSearch.java, Student.java, and Teacher.java using the command javac in the terminal of the CSC servers
+2. Run using the command: java SchoolSearch

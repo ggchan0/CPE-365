@@ -1,0 +1,231 @@
+//TC-1.#a tests the S[tudent]: <lastname> command without the optional B[us]
+
+//TC-1.1a
+//Query for a student that exists
+//Returns “COOKUS, XUAN, 3, 107, FAFARD, ROCIO”
+S: COOKUS
+
+//TC-1.2a
+//Query for a student that doesn’t exist
+//Doesn’t return anything
+S: CHAN
+
+//TC-1.3a
+//Incorrect usage of the S command
+//Doesn’t return anything
+S:
+
+//TC-1.#b tests the S[tudent]: <lastname> B[us] command with B[us] provided
+
+//TC-1.1b
+//Query for a student that exists
+//Returns “COOKUS, XUAN, 52”
+S: COOKUS B
+
+//TC-1.2b
+//Query for a student that doesn’t exist
+//Doesn’t return anything
+S: CHAN B
+
+//TC-1.3b
+//Query with a missing lastname, but with the B flag provided
+//Will attempt to search for students with the lastname of “B”
+S: B
+
+//TC-2.# tests the T[eacher]: <lastname> command
+
+//TC-2.1
+//Query for a teacher that exists
+//Returns “WOOLERY, NOLAN”, “VILARDO, EMMANUEL”
+T: STEIB
+
+//TC-2.2
+//Query for a teacher that doesn’t exist
+//Doesn’t return anything
+T: CHAN
+
+//TC-2.3
+//Incorrect query for a teacher
+//Doesn’t return anything
+T:
+
+//TC-3.# tests the B[us]: <number> command
+
+//TC-3.1
+//Query for bus route
+//Returns “RACANELLO, NOEL, 6, 102”, “VILARDO, EMMANUEL, 2, 104”, 
+//“KRAKE, //VALENTIN, 6, 109”, “BEAN, INGER, 6, 111”, 
+//“BUSSMANN, BILLY, 2, 108”, “FEYEREISEN, WILFREDO, 6, 111”
+B: 56
+
+//TC-3.2
+//Query for nonexistent bus route
+//Doesn’t return anything
+B: 150
+
+//TC-3.3
+//Incorrect usage of B[us]: <number> command
+//Doesn’t return anything
+B:
+
+//TC-4.#a tests the G[rade]: <number> command
+
+//TC-4.1a
+//Query for a grade
+//Returns “SAELEE, DANILO”, “GARTH, JOHN”
+G: 1
+
+//TC-4.2a
+//Query for grade whose value is not held by a student
+//Doesn’t return anything
+G: 2351
+
+//TC-4.3a
+//Query for invalid grade
+//Doesn’t return anything
+G: -1
+
+//TC-4.4a
+//Incorrect query for grade
+//Doesn’t return anything
+G:
+
+//TC-4.#b tests the G[rade]: <number> H[igh] command with H flag
+
+//TC-4.1b
+//Query for a grade with H flag
+//Returns “GARTH, JOHN, 3.14, FALKER, ADOLPH, 0”
+G: 1 H
+
+//TC-4.2b
+//Query for an invalid grade with H flag
+//Doesn’t return anything
+G: -1 H
+
+//TC-4.3b
+//Incorrect usage with H flag
+//Doesn’t return anything
+G: H
+
+//TC-4.#c tests the G[rade]: <number> L[ow] command with L flag
+
+//TC-4.1c
+//Query for a grade with L flag
+//Returns “SAELEE, DANILO, 2.85, FALKER, ADOLPH, 54”
+G: 1 L
+
+//TC-4.2c
+//Query for an invalid grade with L flag
+//Doesn’t return anything
+G: -1 L
+
+//TC-4.3c
+//Incorrect usage with L flag
+//Doesn’t return anything
+G: L
+
+//TC-5.# tests the A[verage]: <number> command
+
+//TC-5.1
+//Query for average
+//Returns “1, 2.995”
+A: 1
+
+//TC-5.2
+//Query for invalid grade
+//Returns “-1, NaN”
+A: -1
+
+//TC-5.3
+//Incorrect usage of A[verage]: <number> command
+//Doesn’t return anything
+A:
+
+
+//TC-6 tests the I[nfo] command
+//Returns the following:
+//0 : 0
+//1 : 2
+//2 : 13
+//3 : 9
+//4 : 15
+//5 : 0
+//6 : 21
+I
+
+//TC-8.#a tests the C[lass] command, which lists all the students in a class
+
+//TC-8.1a
+//Correct usage of the C[lass] <number> command
+//Should return “DURAND, CARLEE”
+C: 101
+
+//TC-8.2a
+//Usage of the C[lass] <number> command on a class with no students
+//Doesn’t return anything
+C: 0
+
+//TC-8.3a
+//Incorrect usage of the C[lass] <number> command
+//Doesn’t return anything
+C:
+
+//TC-8.#b tests the C[lass] command with the included T flag
+
+//TC-8.1b
+//Correct usage of the C[lass] <number> T command
+//Should return “COOL, REUBEN”
+C: 101 T
+
+//TC-8.2b
+//Usage of the C[lass] <number> T command on a class with no teachers
+//Doesn’t return anything
+C: 0 T
+
+//TC-8.3b
+//Incorrect usage of the C[lass] <number> T command
+//Doesn’t return anything
+C: T
+
+//TC-9.# tests the G[rade] <number> T command
+
+//TC-9.1
+//Usage of the G[rade] <number> T command
+//Returns “COOL, REUBEN”, “HANTZ, JED”, “CHIONCHIO, PERLA”
+G: 4 T
+
+//TC-9.2
+//Usage of the G[rade] <number> T command on a grade with no teachers
+//Doesn’t return anything
+G: 20 T
+
+//TC-9.3
+//Incorrect usage of the G[rade] <number> T command
+//Doesn’t return anything
+G: T
+
+//TC-10 tests the R[eport] command
+//Outputs the following:
+//101 : 1
+//102 : 5
+//103 : 2
+//104 : 2
+//105 : 6
+//106 : 2
+//107 : 7
+//108 : 11
+//109 : 5
+//110 : 2
+//111 : 9
+//112 : 8
+R
+
+//TC-11 tests the E[xport] command
+//Exports data in the format: 
+//“GPA, Grade, Bus Route, Teacher Last, Teacher First”
+E
+
+//TC-7 tests the Q[uit] command (note that this was moved to the end)
+//Quits the program
+Q
+

@@ -1,0 +1,38 @@
+S: COOKUS
+S: CHAN
+S:
+S: COOKUS B
+S: CHAN B
+S: B
+T: STEIB
+T: CHAN
+T:
+B: 56
+B: 150
+B:
+G: 1
+G: 2351
+G: -1
+G:
+G: 1 H
+G: -1 H
+G: H
+G: 1 L
+G: -1 L
+G: L
+A: 1
+A: -1
+A:
+I
+C: 101
+C: 0
+C:
+C: 101 T
+C: 0 T
+C: T
+G: 4 T
+G: 20 T
+G: T
+R
+E
+Q
