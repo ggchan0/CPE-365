@@ -131,28 +131,117 @@ public class InnSystem {
 
 
      public void printRoomsAndRates() {
-        String sql = "Select * FROM lab7_reservations";
+        String sql = "SELECT l.Room, DaysOccupied, DaysOccupied / 180 AS Popularity, " +
+                        "DATEDIFF(MostRecentCheckout, MostRecentCheckin) AS Length, " +
+                        "NextCheckout AS NextAvailable FROM lab7_reservations l " +
+                        "INNER JOIN (SELECT l1.Room, SUM(DATEDIFF(LEAST(NOW(), l1.CheckOut), " +
+                        "GREATEST(DATE_ADD(NOW(), INTERVAL -180 DAY), l1.CheckIn))) AS DaysOccupied " +
+                        "FROM lab7_reservations l1 WHERE l1.Checkin <= NOW() " +
+                        "AND l1.Checkin >= DATE_ADD(NOW(), INTERVAL -180 DAY) GROUP BY l1.Room) " +
+                        "q1 ON l.Room = q1.Room " +
+                        "INNER JOIN (SELECT l2.Room, Max(l2.CheckIn) AS MostRecentCheckin, Max(l2.CheckOut) " +
+                        "AS MostRecentCheckout FROM lab7_reservations l2 WHERE l2.Checkout <= NOW() " +
+                        "AND l2.Checkin <= NOW() GROUP BY l2.Room) q2 ON l.Room = q2.Room INNER JOIN " +
+                        "(SELECT l3.Room, MIN(l3.CheckOut) AS NextCheckout FROM lab7_reservations l3 WHERE l3.Checkout >= NOW() GROUP BY Room) " +
+                        "q3 ON q3.Room = l.Room GROUP BY l.Room ORDER BY DaysOccupied / 180 DESC";
         try (Statement statement = conn.createStatement()) {
             ResultSet rs = statement.executeQuery(sql);
             while (rs.next()) {
-                System.out.println(rs.getString("reservationRoom"));
+                System.out.printf("Room: %s\t Days Occupied in the last 180 days: " +
+                                    "%s\t Popularity: %s\t Length of Most Recent Stay: " +
+                                    "%s\t Next Available Booking: %s\n\n",
+                                    rs.getString("Room"),
+                                    rs.getString("DaysOccupied"),
+                                    rs.getString("Popularity"),
+                                    rs.getString("Length"),
+                                    rs.getString("NextAvailable"));
             }
         } catch (Exception e) {
             System.out.println(e);
         }
     }
 
-    public void makeReservation() {
-
-    }
-
     private void fillParameter(PreparedStatement statement, String parameter, String parameterName, int paramNo) throws SQLException {
 
-        if (parameter.equals("")) {
+        if (parameter.equals("") || parameter.equalsIgnoreCase("Any")) {
             statement.setString(paramNo, "%");
         } else {
             statement.setString(paramNo, parameter);
         }
+    }
+
+    private void setUpQuery(PreparedStatement statement, String [] parameters) throws SQLException {
+        fillParameter(statement, parameters[2], "RoomCode", 1);
+        fillParameter(statement, parameters[3], "bedType", 2);
+
+        if (parameters[4].equals("")) {
+            fillParameter(statement, "", "CheckIn", 5);
+        } else if (isValidDate(parameters[4])) {
+            fillParameter(statement, parameters[4], "CheckIn", 5);
+        } else {
+            throw new SQLException();
+        }
+
+        if (parameters[5].equals("")) {
+            fillParameter(statement, "", "Checkout", 6);
+        } else if (isValidDate(parameters[5])) {
+            fillParameter(statement, parameters[5], "Checkout", 6);
+        } else {
+            throw new SQLException();
+        }
+
+        try {
+            int numAdults = Integer.parseInt(parameters[6]);
+            int numKids = Integer.parseInt(parameters[7]);
+            statement.setInt(3, numAdults);
+            statement.setInt(4, numKids);
+        } catch (Exception e) {
+            throw new SQLException();
+        }
+    }
+
+    private void findCorrectRoom(String [] parameters) throws SQLException {
+        String sql = "SELECT l.RoomCode FROM lab7_rooms l WHERE CONVERT(l.RoomCode, CHAR(11)) LIKE ? " +
+                    "AND l.bedType LIKE ? AND l.maxOcc >= ? + ? AND (SELECT COUNT(*) FROM lab7_reservations l1 WHERE ? " +
+                    "BETWEEN l1.CheckIn AND l1.Checkout AND ? BETWEEN l1.Checkin AND l1.CheckOut AND l.RoomCode = l1.Room) = 0 GROUP BY l.RoomCode";
+        String insert = "INSERT INTO lab7_reservations, VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            setUpQuery(statement, parameters);
+            ResultSet rs = statement.executeQuery();
+            System.out.println(rs.getStatement());
+            while (rs.next()) {
+                System.out.println("Found a room!");
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e);
+            System.out.println("Bad input, please try again.");
+        }
+    }
+
+    public void makeReservation() throws SQLException {
+        String [] parameters = new String[8];
+
+        System.out.println("Please enter in the required information (leave blank for any).");
+        System.out.print("First name: ");
+        parameters[0] = inputScanner.nextLine().trim();
+        System.out.print("Last name: ");
+        parameters[1] = inputScanner.nextLine().trim();
+        System.out.print("Room code (Enter 'Any' for no preference): ");
+        parameters[2] = inputScanner.nextLine().trim();
+        System.out.print("Bed Type (Enter 'Any' for no preference): ");
+        parameters[3] = inputScanner.nextLine().trim();
+        System.out.print("Checkin Date (Example: 2017-10-22): ");
+        parameters[4] = inputScanner.nextLine().trim();
+        System.out.print("Checkout Date (Example: 2017-10-23): ");
+        parameters[5] = inputScanner.nextLine().trim();
+        System.out.print("Number of adults: ");
+        parameters[6] = inputScanner.nextLine().trim();
+        System.out.print("Number of kids: ");
+        parameters[7] = inputScanner.nextLine().trim();
+
+        findCorrectRoom(parameters);
     }
 
     private boolean isValidDate(String parameter) throws SQLException {
