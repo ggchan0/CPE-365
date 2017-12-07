@@ -142,7 +142,8 @@ public class InnSystem {
                         "INNER JOIN (SELECT l2.Room, Max(l2.CheckIn) AS MostRecentCheckin, Max(l2.CheckOut) " +
                         "AS MostRecentCheckout FROM lab7_reservations l2 WHERE l2.Checkout <= NOW() " +
                         "AND l2.Checkin <= NOW() GROUP BY l2.Room) q2 ON l.Room = q2.Room INNER JOIN " +
-                        "(SELECT l3.Room, MIN(l3.CheckOut) AS NextCheckout FROM lab7_reservations l3 WHERE l3.Checkout >= NOW() GROUP BY Room) " +
+                        "(SELECT l3.Room, MIN(l3.CheckOut) AS NextCheckout FROM lab7_reservations l3 WHERE l3.Checkout >= NOW() " +
+                        "AND l3.Checkout NOT IN (SELECT l4.CheckIn FROM lab7_reservations l4 WHERE l4.Room = l3.Room) GROUP BY l3.Room) " +
                         "q3 ON q3.Room = l.Room GROUP BY l.Room ORDER BY DaysOccupied / 180 DESC";
         try (Statement statement = conn.createStatement()) {
             ResultSet rs = statement.executeQuery(sql);
@@ -200,22 +201,124 @@ public class InnSystem {
         }
     }
 
+    private double calculateCost(double basePrice, String startDate, String endDate) {
+        double cost = 0;
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        Date date1, date2;
+        try {
+            date1 = df.parse(startDate);
+            date2 = df.parse(endDate);
+        } catch (Exception e) {
+            date1 = null;
+            date2 = null;
+        }
+        Calendar cal1 = Calendar.getInstance();
+        Calendar cal2 = Calendar.getInstance();
+        cal1.setTime(date1);
+        cal2.setTime(date2);
+
+        while (cal1.before(cal2)) {
+            if ((Calendar.SATURDAY != cal1.get(Calendar.DAY_OF_WEEK))
+               &&(Calendar.SUNDAY != cal1.get(Calendar.DAY_OF_WEEK))) {
+                cost += basePrice;
+            } else {
+                cost += basePrice * 1.1;
+            }
+            cal1.add(Calendar.DATE,1);
+        }
+
+        return cost * 1.18;
+    }
+
+    private int getNextReservationCode() throws SQLException {
+        String sql = "SELECT MAX(CODE) FROM lab7_reservations";
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                return rs.getInt("MAX(CODE)") + 1;
+            }
+        }
+
+        return 0;
+    }
+
+    private void bookRoom(String [] parameters, Room r) throws SQLException {
+        String sql = "INSERT INTO lab7_reservations VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            statement.setInt(1, getNextReservationCode());
+            statement.setString(2, r.roomCode);
+            statement.setString(3, parameters[4]);
+            statement.setString(4, parameters[5]);
+            statement.setDouble(5, Double.parseDouble(r.basePrice));
+            statement.setString(6, parameters[1]);
+            statement.setString(7, parameters[0]);
+            statement.setInt(8, Integer.parseInt(parameters[6]));
+            statement.setInt(9, Integer.parseInt(parameters[7]));
+            statement.executeUpdate();
+            System.out.println("Booked room!");
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+    }
+
+    private void confirmRoom(String [] parameters, Room r) throws SQLException {
+        System.out.println("The reservation is listed as follows: ");
+        System.out.printf("First Name: %s Last Name : %s\n", parameters[0], parameters[1]);
+        System.out.printf("Room Code: %s Room Name : %s Bed Type %s\n", r.roomCode, r.roomName, r.bedType);
+        System.out.printf("%s to %s\n", parameters[4], parameters[5]);
+        System.out.printf("Number of adults: %s\n", parameters[6]);
+        System.out.printf("Number of children: %s\n", parameters[7]);
+        System.out.printf("Total Cost of Stay: %s\n", calculateCost(Double.parseDouble(r.basePrice), parameters[4], parameters[5]));
+        System.out.print("Confirm to book (y/n)? ");
+        String ans = inputScanner.nextLine().split(" ")[0];
+        if (ans.equalsIgnoreCase("y")) {
+            bookRoom(parameters, r);
+        }
+    }
+
+    private void selectRooms(String [] parameters, List<Room> rooms) {
+        System.out.println("Here are the available options: ");
+        int count = 1;
+        for (Room r : rooms) {
+            System.out.println(count++ + ") RoomName: " + r.roomName + " BasePrice: " + r.basePrice + " Decor: " + r.decor);
+        }
+
+        System.out.println("Please enter the number of the choice, or anything else to cancel: ");
+        String ans = inputScanner.nextLine().split(" ")[0];
+        try {
+            int optionNum = Integer.parseInt(ans);
+            if (optionNum < 1 || optionNum > rooms.size()) {
+                return;
+            } else {
+                confirmRoom(parameters, rooms.get(optionNum - 1));
+            }
+        } catch (Exception e) {
+
+        }
+
+    }
+
     private void findCorrectRoom(String [] parameters) throws SQLException {
-        String sql = "SELECT l.RoomCode FROM lab7_rooms l WHERE CONVERT(l.RoomCode, CHAR(11)) LIKE ? " +
+        String sql = "SELECT l.RoomCode, l.RoomName, l.basePrice, l.decor, l.bedType FROM lab7_rooms l WHERE CONVERT(l.RoomCode, CHAR(11)) LIKE ? " +
                     "AND l.bedType LIKE ? AND l.maxOcc >= ? + ? AND (SELECT COUNT(*) FROM lab7_reservations l1 WHERE ? " +
                     "BETWEEN l1.CheckIn AND l1.Checkout AND ? BETWEEN l1.Checkin AND l1.CheckOut AND l.RoomCode = l1.Room) = 0 GROUP BY l.RoomCode";
-        String insert = "INSERT INTO lab7_reservations, VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             setUpQuery(statement, parameters);
             ResultSet rs = statement.executeQuery();
-            System.out.println(rs.getStatement());
+            List<Room> availableRooms = new ArrayList<Room>();
             while (rs.next()) {
-                System.out.println("Found a room!");
+                availableRooms.add(new Room(rs.getString("RoomCode"), rs.getString("RoomName"), rs.getString("basePrice"), rs.getString("decor"), rs.getString("bedType")));
+            }
+
+            if (availableRooms.size() == 0) {
+                System.out.println("All rooms that match that description are booked, please try again.");
+            } else {
+                selectRooms(parameters, availableRooms);
             }
 
         } catch (SQLException e) {
-            System.out.println(e);
             System.out.println("Bad input, please try again.");
         }
     }
@@ -320,5 +423,21 @@ public class InnSystem {
         parameters[5] = inputScanner.nextLine().trim();
 
         executeReservationInformationQuery(parameters);
+    }
+
+    private class Room {
+        String roomCode;
+        String roomName;
+        String basePrice;
+        String decor;
+        String bedType;
+
+        Room(String roomCode, String roomName, String basePrice, String decor, String bedType) {
+            this.roomCode = roomCode;
+            this.roomName = roomName;
+            this.basePrice = basePrice;
+            this.decor = decor;
+            this.bedType = bedType;
+        }
     }
 }
