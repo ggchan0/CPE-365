@@ -1,0 +1,11 @@
+CPE-365 Lab 7 - JDBC
+a) Author: Garrett Chan
+b) Run the following commands:
+    javac *.java
+    java Driver
+ Ensure the following variables are in the .bashrc file
+ export CLASSPATH=$CLASSPATH:mysql-connector-java-5.1.44-bin.jar
+ export HP_JDBC_URL=jdbc:mysql://csc365fall2017.webredirect.org:3306/ggchan?autoReconnect=true/&useSSL=false
+ export HP_JDBC_USER="ggchan"
+ export HP_JDBC_PW="365F17_010313403"
+c) The current iteration of the project does not support giving suggestions for reservations when the requested reservation is not available. 
